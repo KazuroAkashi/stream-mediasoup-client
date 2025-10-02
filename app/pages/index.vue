@@ -67,9 +67,8 @@ const videoEl = useTemplateRef("videoEl");
 const audioEl = useTemplateRef("audioEl");
 
 if (import.meta.client) {
-  const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-    "https://streamtest.kazuroakashi.me/api/ws"
-  );
+  const socket: Socket<ServerToClientEvents, ClientToServerEvents> =
+    io("/api/ws");
 
   socket.on("connect", async () => {
     console.log("Connected to server");
