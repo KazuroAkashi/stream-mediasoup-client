@@ -2,6 +2,11 @@
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
+  routeRules: {
+    "/api/ws": {
+      proxy: "http://localhost:3001",
+    },
+  },
   vite: {
     server: {
       allowedHosts: ["streamtest.kazuroakashi.me"],

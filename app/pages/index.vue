@@ -68,7 +68,7 @@ const audioEl = useTemplateRef("audioEl");
 
 if (import.meta.client) {
   const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-    "http://localhost:3001"
+    "https://streamtest.kazuroakashi.me/api/ws"
   );
 
   socket.on("connect", async () => {

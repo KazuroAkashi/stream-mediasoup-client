@@ -54,6 +54,9 @@ export class RoomClient {
     private readonly socket: TypedSocket
   ) {}
 
+  private sendTransport: mediasoup.types.Transport | null = null;
+  private recvTransport: mediasoup.types.Transport | null = null;
+
   async createProducer(payload: { track: MediaStreamTrack }) {
     const creds = await this.socket.emitWithAck("join-room", {
       room: this.room,
@@ -63,41 +66,46 @@ export class RoomClient {
       throw new Error(creds.error.type);
     }
 
-    const sendTransport = this.device.createSendTransport({
-      id: creds.result!.id,
-      iceParameters: creds.result!.iceParameters,
-      iceCandidates: creds.result!.iceCandidates,
-      dtlsParameters: creds.result!.dtlsParameters,
-    });
-
-    sendTransport.on("connect", async ({ dtlsParameters }, callback) => {
-      const res = await this.socket.emitWithAck("connect-transport", {
-        transportId: sendTransport.id,
-        dtlsParameters,
+    if (this.sendTransport === null) {
+      this.sendTransport = this.device.createSendTransport({
+        id: creds.result!.id,
+        iceParameters: creds.result!.iceParameters,
+        iceCandidates: creds.result!.iceCandidates,
+        dtlsParameters: creds.result!.dtlsParameters,
       });
 
-      if (res.error) {
-        throw new Error(res.error.type);
-      }
+      this.sendTransport.on("connect", async ({ dtlsParameters }, callback) => {
+        const res = await this.socket.emitWithAck("connect-transport", {
+          transportId: this.sendTransport!.id,
+          dtlsParameters,
+        });
 
-      callback();
-    });
+        if (res.error) {
+          throw new Error(res.error.type);
+        }
 
-    sendTransport.on("produce", async ({ kind, rtpParameters }, callback) => {
-      const res = await this.socket.emitWithAck("transport-produce", {
-        transportId: sendTransport.id,
-        kind,
-        rtpParameters,
+        callback();
       });
 
-      if (res.error) {
-        throw new Error(res.error.type);
-      }
+      this.sendTransport.on(
+        "produce",
+        async ({ kind, rtpParameters }, callback) => {
+          const res = await this.socket.emitWithAck("transport-produce", {
+            transportId: this.sendTransport!.id,
+            kind,
+            rtpParameters,
+          });
 
-      callback({ id: res.result!.id });
-    });
+          if (res.error) {
+            throw new Error(res.error.type);
+          }
 
-    const producer = await sendTransport.produce({ track: payload.track });
+          callback({ id: res.result!.id });
+        }
+      );
+    }
+
+    const producer = await this.sendTransport.produce({ track: payload.track });
 
     return producer;
   }
@@ -117,43 +125,48 @@ export class RoomClient {
 
     let consumer: mediasoup.types.Consumer;
 
-    const recvTransport = this.device.createRecvTransport({
-      id: creds.result!.id,
-      iceParameters: creds.result!.iceParameters,
-      iceCandidates: creds.result!.iceCandidates,
-      dtlsParameters: creds.result!.dtlsParameters,
-    });
-
-    recvTransport.on("connect", async ({ dtlsParameters }, callback) => {
-      const res = await this.socket.emitWithAck("connect-transport", {
-        transportId: recvTransport.id,
-        dtlsParameters,
+    if (this.recvTransport === null) {
+      this.recvTransport = this.device.createRecvTransport({
+        id: creds.result!.id,
+        iceParameters: creds.result!.iceParameters,
+        iceCandidates: creds.result!.iceCandidates,
+        dtlsParameters: creds.result!.dtlsParameters,
       });
 
-      if (res.error) {
-        throw new Error(res.error.type);
-      }
-
-      callback();
-    });
-
-    recvTransport.on("connectionstatechange", async (connectionState) => {
-      if (connectionState === "connected") {
-        const res = await this.socket.emitWithAck("resume-consume", {
-          transportId: recvTransport.id,
+      this.recvTransport.on("connect", async ({ dtlsParameters }, callback) => {
+        const res = await this.socket.emitWithAck("connect-transport", {
+          transportId: this.recvTransport!.id,
+          dtlsParameters,
         });
 
         if (res.error) {
           throw new Error(res.error.type);
         }
 
-        console.log(connectionState);
-        payload.onConnected?.(consumer);
-      }
-    });
+        callback();
+      });
+
+      this.recvTransport.on(
+        "connectionstatechange",
+        async (connectionState) => {
+          if (connectionState === "connected") {
+            const res = await this.socket.emitWithAck("resume-consume", {
+              transportId: this.recvTransport!.id,
+            });
+
+            if (res.error) {
+              throw new Error(res.error.type);
+            }
+
+            console.log(connectionState);
+            payload.onConnected?.(consumer);
+          }
+        }
+      );
+    }
 
     const consumeCredsRes = await this.socket.emitWithAck("transport-consume", {
-      transportId: recvTransport.id,
+      transportId: this.recvTransport.id,
       producerId: payload.producerId,
       rtpCapabilities: this.device.rtpCapabilities,
     });
@@ -162,7 +175,7 @@ export class RoomClient {
       throw new Error(consumeCredsRes.error.type);
     }
 
-    consumer = await recvTransport.consume({
+    consumer = await this.recvTransport.consume({
       id: consumeCredsRes.result!.id,
       producerId: payload.producerId,
       kind: payload.producerKind,
