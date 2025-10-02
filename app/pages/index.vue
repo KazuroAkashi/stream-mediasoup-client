@@ -67,8 +67,9 @@ const videoEl = useTemplateRef("videoEl");
 const audioEl = useTemplateRef("audioEl");
 
 if (import.meta.client) {
-  const socket: Socket<ServerToClientEvents, ClientToServerEvents> =
-    io("/api/ws");
+  const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io("/", {
+    path: "/api/ws/socket.io",
+  });
 
   socket.on("connect", async () => {
     console.log("Connected to server");
