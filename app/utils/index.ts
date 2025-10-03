@@ -48,7 +48,7 @@ export async function joinRoom(payload: { room: string; socket: TypedSocket }) {
   const device = await mediasoup.Device.factory();
   console.log("Joining 2a");
   await device.load({
-    routerRtpCapabilities: markRaw(room.rtpCapabilities),
+    routerRtpCapabilities: toRaw(room.rtpCapabilities),
   });
 
   console.log("Joining 3");
