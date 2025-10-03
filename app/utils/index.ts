@@ -1,14 +1,36 @@
 import type { TypedSocket } from "./types";
 import * as mediasoup from "mediasoup-client";
 
-// TODO: Update
-const rooms = new Map<
+let rooms = new Map<
   string,
   {
     rtpCapabilities: mediasoup.types.RtpCapabilities;
-    members: { id: string; isProducer: boolean }[];
+    members: Map<
+      string,
+      {
+        producerIds: string[];
+        consumerIds: string[];
+      }
+    >;
   }
 >();
+
+export function subscribeSocketToRooms(
+  socket: TypedSocket,
+  onRoomsUpdate: (
+    rooms: Map<
+      string,
+      {
+        rtpCapabilities: mediasoup.types.RtpCapabilities;
+        members: Map<string, { producerIds: string[]; consumerIds: string[] }>;
+      }
+    >
+  ) => void
+) {
+  socket.on("rooms-updated", (data) => {
+    rooms = data.result!;
+  });
+}
 
 export async function createRoom(payload: {
   name: string;
@@ -21,11 +43,6 @@ export async function createRoom(payload: {
   if (res.error) {
     throw new Error(res.error.type);
   }
-
-  rooms.set(payload.name, {
-    rtpCapabilities: res.result!.rtpCapabilities,
-    members: [],
-  });
 }
 
 export async function joinRoom(payload: { room: string; socket: TypedSocket }) {

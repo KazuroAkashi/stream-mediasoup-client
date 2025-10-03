@@ -1,6 +1,18 @@
 <template>
   <div>
-    <h1>Hello, World</h1>
+    <h1>Stream Test</h1>
+    <div class="options">
+      <select v-model="selectedVideoDevice" placeholder="Select video device">
+        <option v-for="device in videoDevices" :value="device">
+          {{ device.label }}
+        </option>
+      </select>
+      <select v-model="selectedAudioDevice" placeholder="Select audio device">
+        <option v-for="device in audioDevices" :value="device">
+          {{ device.label }}
+        </option>
+      </select>
+    </div>
     <button @click="initiateConnection">Initiate Connection</button>
     <video autoplay playsinline ref="videoEl"></video>
     <audio autoplay playsinline ref="audioEl"></audio>
@@ -10,7 +22,7 @@
 <script setup lang="ts">
 import * as mediasoup from "mediasoup-client";
 import { Socket, io } from "socket.io-client";
-import { createRoom, joinRoom } from "~/utils";
+import { createRoom, joinRoom, subscribeSocketToRooms } from "~/utils";
 
 interface ServerToClientEvents {}
 
@@ -66,6 +78,13 @@ interface ClientToServerEvents {
 
 const videoEl = useTemplateRef("videoEl");
 const audioEl = useTemplateRef("audioEl");
+
+const videoDevices = ref(null as MediaDeviceInfo[] | null);
+const audioDevices = ref(null as MediaDeviceInfo[] | null);
+
+const selectedVideoDevice = ref(null as MediaDeviceInfo | null);
+const selectedAudioDevice = ref(null as MediaDeviceInfo | null);
+
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
 if (import.meta.client) {
@@ -76,41 +95,73 @@ if (import.meta.client) {
   socket.on("connect", async () => {
     console.log("Connected to server");
 
+    subscribeSocketToRooms(socket!, (rooms) => {
+      console.log("Rooms updated", rooms);
+    });
+
     await createRoom({ name: "room-1", socket: socket! });
   });
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  videoDevices.value = devices.filter((device) => device.kind === "videoinput");
+  audioDevices.value = devices.filter((device) => device.kind === "audioinput");
 }
 
 const initiateConnection = async () => {
   const client = await joinRoom({ room: "room-1", socket: socket! });
 
   const userMedia = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true,
+    video: {
+      deviceId: selectedVideoDevice.value?.deviceId,
+    },
+    audio: {
+      deviceId: selectedAudioDevice.value?.deviceId,
+    },
   });
 
-  const displayMedia = await navigator.mediaDevices.getDisplayMedia({
-    video: true,
-    audio: true,
+  // const displayMedia = await navigator.mediaDevices.getDisplayMedia({
+  //   video: true,
+  //   audio: true,
+  // });
+
+  const videoProducer = await client.createProducer({
+    track: userMedia.getVideoTracks()[0]!,
   });
 
-  const producer = await client.createProducer({
-    track: displayMedia.getVideoTracks()[0]!,
+  const audioProducer = await client.createProducer({
+    track: userMedia.getAudioTracks()[0]!,
   });
 
-  const consumer = await client.createConsumer({
-    producerId: producer.id,
+  const videoConsumer = await client.createConsumer({
+    producerId: videoProducer.id,
     producerKind: "video",
   });
-  console.log("Consumer connected");
+
   const stream = new MediaStream();
-  consumer.track.addEventListener("ended", () => {
-    stream.removeTrack(consumer.track);
+  videoConsumer.track.addEventListener("ended", () => {
+    stream.removeTrack(videoConsumer.track);
     console.log("Track ended");
   });
-  stream.addTrack(consumer.track);
+  stream.addTrack(videoConsumer.track);
   videoEl.value!.srcObject = stream;
   document.body.addEventListener("click", () => {
     videoEl.value!.play();
+  });
+
+  const audioConsumer = await client.createConsumer({
+    producerId: audioProducer.id,
+    producerKind: "audio",
+  });
+
+  const audioStream = new MediaStream();
+  audioConsumer.track.addEventListener("ended", () => {
+    audioStream.removeTrack(audioConsumer.track);
+    console.log("Track ended");
+  });
+  audioStream.addTrack(audioConsumer.track);
+  audioEl.value!.srcObject = audioStream;
+  document.body.addEventListener("click", () => {
+    audioEl.value!.play();
   });
 };
 </script>

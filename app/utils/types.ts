@@ -18,22 +18,27 @@ export type Result<T> = {
   };
 };
 
-export interface ServerToClientEvents {}
+export interface ServerToClientEvents {
+  "rooms-updated": (
+    data: Result<
+      Map<
+        string,
+        {
+          rtpCapabilities: mediasoup.types.RtpCapabilities;
+          members: Map<
+            string,
+            {
+              producerIds: string[];
+              consumerIds: string[];
+            }
+          >;
+        }
+      >
+    >
+  ) => void;
+}
 
 export interface ClientToServerEvents {
-  "room-list": (
-    callback: (
-      data: Result<
-        Map<
-          string,
-          {
-            rtpCapabilities: mediasoup.types.RtpCapabilities;
-            members: { id: string; isProducer: boolean }[];
-          }
-        >
-      >
-    ) => void
-  ) => void;
   "create-room": (
     payload: { room: string },
     callback: (
