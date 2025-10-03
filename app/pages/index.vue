@@ -96,10 +96,7 @@ const createNewRoom = async () => {
 const joinARoom = async (roomName: string) => {
   const client = await joinRoom({ room: roomName, socket: socket! });
 
-  console.log("Joined room", roomName);
-
   clients[roomName] = client;
-  console.log("Stored", roomName);
   connectedRoomNames.value.push(roomName);
 };
 
