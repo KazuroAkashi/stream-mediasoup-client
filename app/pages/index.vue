@@ -28,11 +28,18 @@
         >
           <p>Socket ID: {{ socketid }}</p>
           <button
-            v-for="id in member.producerIds"
+            v-for="id in member.audioProducerIds"
             :key="id"
-            @click="consumeProducer(id, roomName as string)"
+            @click="consumeProducer(id, roomName as string, 'audio')"
           >
-            Consume Producer ID: {{ id }}
+            Consume Audio Producer ID: {{ id }}
+          </button>
+          <button
+            v-for="id in member.videoProducerIds"
+            :key="id"
+            @click="consumeProducer(id, roomName as string, 'video')"
+          >
+            Consume Video Producer ID: {{ id }}
           </button>
         </div>
         <button @click="leaveARoom(roomName as string)">
@@ -63,7 +70,8 @@ let rooms = ref(
       rtpCapabilities: any;
       members: {
         [key: string]: {
-          producerIds: string[];
+          audioProducerIds: string[];
+          videoProducerIds: string[];
           consumerIds: string[];
         };
       };
@@ -123,48 +131,54 @@ const leaveARoom = async (roomName: string) => {
   );
 };
 
-const consumeProducer = async (producerId: string, roomName: string) => {
+const consumeProducer = async (
+  producerId: string,
+  roomName: string,
+  kind: "audio" | "video"
+) => {
   const client = clients[roomName]!;
-  const videoConsumer = await client
-    .createConsumer({ producerId, producerKind: "video" })
-    .catch(() => null);
-  const audioConsumer = await client
-    .createConsumer({ producerId, producerKind: "audio" })
-    .catch(() => null);
 
-  if (videoConsumer === null && audioConsumer === null) {
-    alert("Could not consume");
-    return;
+  if (kind === "audio") {
+    const audioConsumer = await client
+      .createConsumer({ producerId, producerKind: "audio" })
+      .catch(() => null);
+
+    if (audioConsumer !== null) {
+      const el = document.createElement("audio");
+      el.autoplay = true;
+      consumingList.value?.appendChild(el);
+
+      const stream = new MediaStream();
+      audioConsumer.track.addEventListener("ended", () => {
+        stream.removeTrack(audioConsumer.track);
+        consumingList.value?.removeChild(el);
+        console.log("Track ended");
+      });
+      stream.addTrack(audioConsumer.track);
+      el.srcObject = stream;
+    }
   }
 
-  if (videoConsumer !== null) {
-    const el = document.createElement("video");
-    el.playsInline = true;
-    el.autoplay = true;
-    consumingList.value?.appendChild(el);
+  if (kind === "video") {
+    const videoConsumer = await client
+      .createConsumer({ producerId, producerKind: "video" })
+      .catch(() => null);
 
-    const stream = new MediaStream();
-    videoConsumer.track.addEventListener("ended", () => {
-      stream.removeTrack(videoConsumer.track);
-      consumingList.value?.removeChild(el);
-      console.log("Track ended");
-    });
-    stream.addTrack(videoConsumer.track);
-    el.srcObject = stream;
-  }
-  if (audioConsumer !== null) {
-    const el = document.createElement("audio");
-    el.autoplay = true;
-    consumingList.value?.appendChild(el);
+    if (videoConsumer !== null) {
+      const el = document.createElement("video");
+      el.playsInline = true;
+      el.autoplay = true;
+      consumingList.value?.appendChild(el);
 
-    const stream = new MediaStream();
-    audioConsumer.track.addEventListener("ended", () => {
-      stream.removeTrack(audioConsumer.track);
-      consumingList.value?.removeChild(el);
-      console.log("Track ended");
-    });
-    stream.addTrack(audioConsumer.track);
-    el.srcObject = stream;
+      const stream = new MediaStream();
+      videoConsumer.track.addEventListener("ended", () => {
+        stream.removeTrack(videoConsumer.track);
+        consumingList.value?.removeChild(el);
+        console.log("Track ended");
+      });
+      stream.addTrack(videoConsumer.track);
+      el.srcObject = stream;
+    }
   }
 };
 

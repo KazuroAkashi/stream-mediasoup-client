@@ -25,7 +25,8 @@ export interface ServerToClientEvents {
         rtpCapabilities: mediasoup.types.RtpCapabilities;
         members: {
           [key: string]: {
-            producerIds: string[];
+            audioProducerIds: string[];
+            videoProducerIds: string[];
             consumerIds: string[];
           };
         };
