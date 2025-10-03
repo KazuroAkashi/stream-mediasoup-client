@@ -2,19 +2,17 @@ import type { TypedSocket } from "./types";
 import * as mediasoup from "mediasoup-client";
 
 let rooms = ref(
-  new Map<
-    string,
-    {
+  {} as {
+    [key: string]: {
       rtpCapabilities: mediasoup.types.RtpCapabilities;
-      members: Map<
-        string,
-        {
+      members: {
+        [key: string]: {
           producerIds: string[];
           consumerIds: string[];
-        }
-      >;
-    }
-  >()
+        };
+      };
+    };
+  }
 );
 
 export function subscribeSocketToRooms(socket: TypedSocket) {
@@ -39,11 +37,11 @@ export async function createRoom(payload: {
 }
 
 export async function joinRoom(payload: { room: string; socket: TypedSocket }) {
-  if (!rooms.value.has(payload.room)) {
+  if (!rooms.value[payload.room]) {
     throw new Error("Room does not exist");
   }
 
-  const room = rooms.value.get(payload.room)!;
+  const room = rooms.value[payload.room]!;
 
   const device = await mediasoup.Device.factory();
   await device.load({

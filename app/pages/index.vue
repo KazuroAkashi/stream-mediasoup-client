@@ -14,8 +14,8 @@
     </div>
     <div class="rooms">
       <h2>Open Rooms</h2>
-      <div v-for="[roomName, _] in rooms" :key="roomName">
-        <button @click="joinARoom(roomName)">{{ roomName }}</button>
+      <div v-for="(_, roomName) in rooms" :key="roomName">
+        <button @click="joinARoom(roomName as string)">{{ roomName }}</button>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
       <h2>Connected Rooms</h2>
       <div v-for="[roomName, _] in clients" :key="roomName">
         <div
-          v-for="[socketid, member] in rooms?.get(roomName)?.members"
+          v-for="(member, socketid) in rooms![roomName]?.members"
           class="member"
         >
           <p>Socket ID: {{ socketid }}</p>
@@ -57,13 +57,17 @@ const roomError = ref("");
 const clients = ref(new Map<string, RoomClient>());
 
 let rooms = ref(
-  null as Map<
-    string,
-    {
+  null as {
+    [key: string]: {
       rtpCapabilities: any;
-      members: Map<string, { producerIds: string[]; consumerIds: string[] }>;
-    }
-  > | null
+      members: {
+        [key: string]: {
+          producerIds: string[];
+          consumerIds: string[];
+        };
+      };
+    };
+  } | null
 );
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;

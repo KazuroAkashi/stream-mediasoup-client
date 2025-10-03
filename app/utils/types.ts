@@ -20,21 +20,17 @@ export type Result<T> = {
 
 export interface ServerToClientEvents {
   "rooms-updated": (
-    data: Result<
-      Map<
-        string,
-        {
-          rtpCapabilities: mediasoup.types.RtpCapabilities;
-          members: Map<
-            string,
-            {
-              producerIds: string[];
-              consumerIds: string[];
-            }
-          >;
-        }
-      >
-    >
+    data: Result<{
+      [key: string]: {
+        rtpCapabilities: mediasoup.types.RtpCapabilities;
+        members: {
+          [key: string]: {
+            producerIds: string[];
+            consumerIds: string[];
+          };
+        };
+      };
+    }>
   ) => void;
 }
 
