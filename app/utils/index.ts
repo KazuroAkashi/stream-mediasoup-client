@@ -74,11 +74,6 @@ export class RoomClient {
         iceParameters: creds.result!.iceParameters,
         iceCandidates: creds.result!.iceCandidates,
         dtlsParameters: creds.result!.dtlsParameters,
-        iceServers: [
-          {
-            urls: "stun:stun.l.google.com:19302",
-          },
-        ],
       });
 
       this.sendTransport.on("connect", async ({ dtlsParameters }, callback) => {
