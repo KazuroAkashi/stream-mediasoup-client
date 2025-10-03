@@ -142,7 +142,7 @@ export class RoomClient {
               urls: "stun:stun.l.google.com:19302",
             },
             {
-              urls: "turn:streamtest.kazuroakashi.me:5349?transport=tcp",
+              urls: "turn:37.187.26.197:5349?transport=tcp",
               username: "turnkazuro",
               credential: "turnkazuro",
             },
