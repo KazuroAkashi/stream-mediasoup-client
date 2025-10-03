@@ -21,7 +21,7 @@
 
     <div class="connected-rooms">
       <h2>Connected Rooms</h2>
-      <div v-for="[roomName, _] in clients" :key="roomName">
+      <div v-for="(_, roomName) in clients" :key="roomName">
         <div
           v-for="(member, socketid) in rooms![roomName]?.members"
           class="member"
@@ -30,12 +30,12 @@
           <button
             v-for="id in member.producerIds"
             :key="id"
-            @click="consumeProducer(id, roomName)"
+            @click="consumeProducer(id, roomName as string)"
           >
             Consume Producer ID: {{ id }}
           </button>
         </div>
-        <button @click="leaveARoom(roomName)">
+        <button @click="leaveARoom(roomName as string)">
           Disconnect from {{ roomName }}
         </button>
       </div>
@@ -54,7 +54,7 @@ const audioEl = useTemplateRef("audioEl");
 const roomName = ref("");
 const roomError = ref("");
 
-const clients = ref(new Map<string, RoomClient>());
+const clients = ref({} as { [key: string]: RoomClient | undefined });
 
 let rooms = ref(
   null as {
@@ -95,17 +95,17 @@ const createNewRoom = async () => {
 const joinARoom = async (roomName: string) => {
   const client = await joinRoom({ room: roomName, socket: socket! });
 
-  clients.value.set(roomName, client);
+  clients.value[roomName] = client;
 };
 
 const leaveARoom = async (roomName: string) => {
-  const client = clients.value.get(roomName)!;
+  const client = clients.value[roomName]!;
   await client.close();
-  clients.value.delete(roomName);
+  clients.value[roomName] = undefined;
 };
 
 const consumeProducer = async (producerId: string, roomName: string) => {
-  const client = clients.value.get(roomName)!;
+  const client = clients.value[roomName]!;
   const videoConsumer = await client
     .createConsumer({ producerId, producerKind: "video" })
     .catch(() => null);
