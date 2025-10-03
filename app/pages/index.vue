@@ -1,6 +1,7 @@
 <template>
   <div>
     <h1>Hello, World</h1>
+    <button @click="initiateConnection">Initiate Connection</button>
     <video autoplay playsinline ref="videoEl"></video>
     <audio autoplay playsinline ref="audioEl"></audio>
   </div>
@@ -65,48 +66,51 @@ interface ClientToServerEvents {
 
 const videoEl = useTemplateRef("videoEl");
 const audioEl = useTemplateRef("audioEl");
+let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
 if (import.meta.client) {
-  const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io("/", {
+  socket = io("/", {
     path: "/api/ws/socket.io",
   });
 
   socket.on("connect", async () => {
     console.log("Connected to server");
 
-    await createRoom({ name: "room-1", socket });
-
-    const client = await joinRoom({ room: "room-1", socket });
-
-    const userMedia = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-
-    const displayMedia = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: true,
-    });
-
-    const producer = await client.createProducer({
-      track: displayMedia.getVideoTracks()[0]!,
-    });
-
-    const consumer = await client.createConsumer({
-      producerId: producer.id,
-      producerKind: "video",
-      onConnected: (consumer) => {
-        const stream = new MediaStream();
-        consumer.track.addEventListener("ended", () => {
-          stream.removeTrack(consumer.track);
-        });
-        stream.addTrack(consumer.track);
-        videoEl.value!.srcObject = stream;
-        document.body.addEventListener("click", () => {
-          videoEl.value!.play();
-        });
-      },
-    });
+    await createRoom({ name: "room-1", socket: socket! });
   });
 }
+
+const initiateConnection = async () => {
+  const client = await joinRoom({ room: "room-1", socket: socket! });
+
+  const userMedia = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: true,
+  });
+
+  const displayMedia = await navigator.mediaDevices.getDisplayMedia({
+    video: true,
+    audio: true,
+  });
+
+  const producer = await client.createProducer({
+    track: displayMedia.getVideoTracks()[0]!,
+  });
+
+  const consumer = await client.createConsumer({
+    producerId: producer.id,
+    producerKind: "video",
+    onConnected: (consumer) => {
+      const stream = new MediaStream();
+      consumer.track.addEventListener("ended", () => {
+        stream.removeTrack(consumer.track);
+      });
+      stream.addTrack(consumer.track);
+      videoEl.value!.srcObject = stream;
+      document.body.addEventListener("click", () => {
+        videoEl.value!.play();
+      });
+    },
+  });
+};
 </script>
