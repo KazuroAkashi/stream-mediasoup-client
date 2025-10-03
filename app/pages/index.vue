@@ -141,7 +141,10 @@ const consumeProducer = async (
   if (kind === "audio") {
     const audioConsumer = await client
       .createConsumer({ producerId, producerKind: "audio" })
-      .catch(() => null);
+      .catch((err) => {
+        console.log(err);
+        return null;
+      });
 
     if (audioConsumer !== null) {
       const el = document.createElement("audio");
@@ -162,7 +165,10 @@ const consumeProducer = async (
   if (kind === "video") {
     const videoConsumer = await client
       .createConsumer({ producerId, producerKind: "video" })
-      .catch(() => null);
+      .catch((err) => {
+        console.log(err);
+        return null;
+      });
 
     if (videoConsumer !== null) {
       const el = document.createElement("video");
