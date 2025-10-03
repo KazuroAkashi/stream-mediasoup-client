@@ -19,6 +19,7 @@ let rooms = ref(
 
 export function subscribeSocketToRooms(socket: TypedSocket) {
   socket.on("rooms-updated", (data) => {
+    console.log("Rooms updated", data.result!);
     rooms.value = data.result!;
   });
   return rooms;
