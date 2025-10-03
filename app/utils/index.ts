@@ -197,6 +197,18 @@ export class RoomClient {
         kind: payload.producerKind,
         rtpParameters: consumeCredsRes.result!.rtpParameters,
       });
+
+      if (this.recvTransport.connectionState === "connected") {
+        const res = await this.socket.emitWithAck("resume-consume", {
+          transportId: this.recvTransport!.id,
+        });
+
+        if (res.error) {
+          throw new Error(res.error.type);
+        }
+
+        resolve(consumer);
+      }
     });
   }
 
