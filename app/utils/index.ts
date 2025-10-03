@@ -41,22 +41,17 @@ export async function joinRoom(payload: { room: string; socket: TypedSocket }) {
     throw new Error("Room does not exist");
   }
 
-  console.log("Joining");
   const room = rooms.value[payload.room]!;
 
-  console.log("Joining 2");
   const device = await mediasoup.Device.factory();
-  console.log("Joining 2a");
   await device.load({
     routerRtpCapabilities: toRaw(room.rtpCapabilities),
   });
 
-  console.log("Joining 3");
   if (device.rtpCapabilities.codecs?.length === 0) {
     throw new Error("No codecs supported");
   }
 
-  console.log("Joining 4");
   return new RoomClient(device, payload.room, payload.socket);
 }
 

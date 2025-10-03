@@ -98,6 +98,19 @@ const joinARoom = async (roomName: string) => {
 
   clients[roomName] = client;
   connectedRoomNames.value.push(roomName);
+
+  const userMedia = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: true,
+  });
+
+  const videoProducer = await client.createProducer({
+    track: userMedia.getVideoTracks()[0]!,
+  });
+
+  const audioProducer = await client.createProducer({
+    track: userMedia.getAudioTracks()[0]!,
+  });
 };
 
 const leaveARoom = async (roomName: string) => {
