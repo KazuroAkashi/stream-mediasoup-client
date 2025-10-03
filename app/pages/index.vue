@@ -100,19 +100,17 @@ const initiateConnection = async () => {
   const consumer = await client.createConsumer({
     producerId: producer.id,
     producerKind: "video",
-    onConnected: (consumer) => {
-      console.log("Consumer connected");
-      const stream = new MediaStream();
-      consumer.track.addEventListener("ended", () => {
-        stream.removeTrack(consumer.track);
-        console.log("Track ended");
-      });
-      stream.addTrack(consumer.track);
-      videoEl.value!.srcObject = stream;
-      document.body.addEventListener("click", () => {
-        videoEl.value!.play();
-      });
-    },
+  });
+  console.log("Consumer connected");
+  const stream = new MediaStream();
+  consumer.track.addEventListener("ended", () => {
+    stream.removeTrack(consumer.track);
+    console.log("Track ended");
+  });
+  stream.addTrack(consumer.track);
+  videoEl.value!.srcObject = stream;
+  document.body.addEventListener("click", () => {
+    videoEl.value!.play();
   });
 };
 </script>
