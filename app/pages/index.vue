@@ -95,7 +95,7 @@ const createNewRoom = async () => {
 const joinARoom = async (roomName: string) => {
   const client = await joinRoom({ room: roomName, socket: socket! });
 
-  clients.value[roomName] = client;
+  clients.value[roomName] = markRaw(client);
 };
 
 const leaveARoom = async (roomName: string) => {
