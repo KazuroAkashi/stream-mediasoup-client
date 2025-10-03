@@ -1,35 +1,27 @@
 import type { TypedSocket } from "./types";
 import * as mediasoup from "mediasoup-client";
 
-let rooms = new Map<
-  string,
-  {
-    rtpCapabilities: mediasoup.types.RtpCapabilities;
-    members: Map<
-      string,
-      {
-        producerIds: string[];
-        consumerIds: string[];
-      }
-    >;
-  }
->();
+let rooms = ref(
+  new Map<
+    string,
+    {
+      rtpCapabilities: mediasoup.types.RtpCapabilities;
+      members: Map<
+        string,
+        {
+          producerIds: string[];
+          consumerIds: string[];
+        }
+      >;
+    }
+  >()
+);
 
-export function subscribeSocketToRooms(
-  socket: TypedSocket,
-  onRoomsUpdate: (
-    rooms: Map<
-      string,
-      {
-        rtpCapabilities: mediasoup.types.RtpCapabilities;
-        members: Map<string, { producerIds: string[]; consumerIds: string[] }>;
-      }
-    >
-  ) => void
-) {
+export function subscribeSocketToRooms(socket: TypedSocket) {
   socket.on("rooms-updated", (data) => {
-    rooms = data.result!;
+    rooms.value = data.result!;
   });
+  return rooms;
 }
 
 export async function createRoom(payload: {
@@ -46,11 +38,11 @@ export async function createRoom(payload: {
 }
 
 export async function joinRoom(payload: { room: string; socket: TypedSocket }) {
-  if (!rooms.has(payload.room)) {
+  if (!rooms.value.has(payload.room)) {
     throw new Error("Room does not exist");
   }
 
-  const room = rooms.get(payload.room)!;
+  const room = rooms.value.get(payload.room)!;
 
   const device = await mediasoup.Device.factory();
   await device.load({
@@ -206,5 +198,10 @@ export class RoomClient {
         rtpParameters: consumeCredsRes.result!.rtpParameters,
       });
     });
+  }
+
+  async close() {
+    await this.sendTransport?.close();
+    await this.recvTransport?.close();
   }
 }

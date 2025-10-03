@@ -1,89 +1,70 @@
 <template>
   <div>
     <h1>Stream Test</h1>
-    <div class="options">
-      <select v-model="selectedVideoDevice" placeholder="Select video device">
-        <option v-for="device in videoDevices" :value="device">
-          {{ device.label }}
-        </option>
-      </select>
-      <select v-model="selectedAudioDevice" placeholder="Select audio device">
-        <option v-for="device in audioDevices" :value="device">
-          {{ device.label }}
-        </option>
-      </select>
-    </div>
-    <button @click="initiateConnection">Initiate Connection</button>
+
     <video autoplay playsinline ref="videoEl"></video>
     <audio autoplay playsinline ref="audioEl"></audio>
+
+    <div class="consuming" ref="consumingList"></div>
+
+    <div class="create-room">
+      <input type="text" v-model="roomName" @input="roomError = ''" />
+      <button @click="createNewRoom">Create Room</button>
+      <p>{{ roomError }}</p>
+    </div>
+    <div class="rooms">
+      <h2>Open Rooms</h2>
+      <div v-for="[roomName, _] in rooms" :key="roomName">
+        <button @click="joinARoom(roomName)">{{ roomName }}</button>
+      </div>
+    </div>
+
+    <div class="connected-rooms">
+      <h2>Connected Rooms</h2>
+      <div v-for="[roomName, _] in clients" :key="roomName">
+        <div
+          v-for="[socketid, member] in rooms?.get(roomName)?.members"
+          class="member"
+        >
+          <p>Socket ID: {{ socketid }}</p>
+          <button
+            v-for="id in member.producerIds"
+            :key="id"
+            @click="consumeProducer(id, roomName)"
+          >
+            Consume Producer ID: {{ id }}
+          </button>
+        </div>
+        <button @click="leaveARoom(roomName)">
+          Disconnect from {{ roomName }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import * as mediasoup from "mediasoup-client";
 import { Socket, io } from "socket.io-client";
 import { createRoom, joinRoom, subscribeSocketToRooms } from "~/utils";
 
-interface ServerToClientEvents {}
-
-interface ClientToServerEvents {
-  "create-room": (
-    payload: { room: string },
-    callback?: (data: {
-      rtpCapabilities: mediasoup.types.RtpCapabilities;
-    }) => void
-  ) => void;
-  "join-room": (
-    payload: { room: string },
-    callback: (data: {
-      id: string;
-      iceParameters: mediasoup.types.IceParameters;
-      iceCandidates: mediasoup.types.IceCandidate[];
-      dtlsParameters: mediasoup.types.DtlsParameters;
-    }) => void
-  ) => void;
-  "connect-transport": (
-    payload: {
-      transportId: string;
-      dtlsParameters: mediasoup.types.DtlsParameters;
-    },
-    callback?: () => void
-  ) => void;
-  "transport-produce": (
-    payload: {
-      transportId: string;
-      kind: "audio" | "video";
-      rtpParameters: mediasoup.types.RtpParameters;
-    },
-    callback: (data: { id: string }) => void
-  ) => void;
-  "transport-consume": (
-    payload: {
-      transportId: string;
-      producerId: string;
-      rtpCapabilities: mediasoup.types.RtpCapabilities;
-    },
-    callback: (
-      data: {
-        id: string;
-        rtpParameters: mediasoup.types.RtpParameters;
-      } | null
-    ) => void
-  ) => void;
-  "resume-consume": (
-    payload: { transportId: string },
-    callback?: () => void
-  ) => void;
-}
-
+const consumingList = useTemplateRef("consumingList");
 const videoEl = useTemplateRef("videoEl");
 const audioEl = useTemplateRef("audioEl");
 
-const videoDevices = ref(null as MediaDeviceInfo[] | null);
-const audioDevices = ref(null as MediaDeviceInfo[] | null);
+const roomName = ref("");
+const roomError = ref("");
 
-const selectedVideoDevice = ref(null as MediaDeviceInfo | null);
-const selectedAudioDevice = ref(null as MediaDeviceInfo | null);
+const clients = ref(new Map<string, RoomClient>());
+
+let rooms = ref(
+  null as Map<
+    string,
+    {
+      rtpCapabilities: any;
+      members: Map<string, { producerIds: string[]; consumerIds: string[] }>;
+    }
+  > | null
+);
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
@@ -95,28 +76,81 @@ if (import.meta.client) {
   socket.on("connect", async () => {
     console.log("Connected to server");
 
-    subscribeSocketToRooms(socket!, (rooms) => {
-      console.log("Rooms updated", rooms);
-    });
-
-    await createRoom({ name: "room-1", socket: socket! });
+    rooms = subscribeSocketToRooms(socket!);
   });
-
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  videoDevices.value = devices.filter((device) => device.kind === "videoinput");
-  audioDevices.value = devices.filter((device) => device.kind === "audioinput");
 }
+
+const createNewRoom = async () => {
+  try {
+    await createRoom({ name: roomName.value, socket: socket! });
+  } catch (error) {
+    roomError.value = error as string;
+  }
+};
+
+const joinARoom = async (roomName: string) => {
+  const client = await joinRoom({ room: roomName, socket: socket! });
+
+  clients.value.set(roomName, client);
+};
+
+const leaveARoom = async (roomName: string) => {
+  const client = clients.value.get(roomName)!;
+  await client.close();
+  clients.value.delete(roomName);
+};
+
+const consumeProducer = async (producerId: string, roomName: string) => {
+  const client = clients.value.get(roomName)!;
+  const videoConsumer = await client
+    .createConsumer({ producerId, producerKind: "video" })
+    .catch(() => null);
+  const audioConsumer = await client
+    .createConsumer({ producerId, producerKind: "audio" })
+    .catch(() => null);
+
+  if (videoConsumer === null && audioConsumer === null) {
+    alert("Could not consume");
+    return;
+  }
+
+  if (videoConsumer !== null) {
+    const el = document.createElement("video");
+    el.playsInline = true;
+    el.autoplay = true;
+    consumingList.value?.appendChild(el);
+
+    const stream = new MediaStream();
+    videoConsumer.track.addEventListener("ended", () => {
+      stream.removeTrack(videoConsumer.track);
+      consumingList.value?.removeChild(el);
+      console.log("Track ended");
+    });
+    stream.addTrack(videoConsumer.track);
+    el.srcObject = stream;
+  }
+  if (audioConsumer !== null) {
+    const el = document.createElement("audio");
+    el.autoplay = true;
+    consumingList.value?.appendChild(el);
+
+    const stream = new MediaStream();
+    audioConsumer.track.addEventListener("ended", () => {
+      stream.removeTrack(audioConsumer.track);
+      consumingList.value?.removeChild(el);
+      console.log("Track ended");
+    });
+    stream.addTrack(audioConsumer.track);
+    el.srcObject = stream;
+  }
+};
 
 const initiateConnection = async () => {
   const client = await joinRoom({ room: "room-1", socket: socket! });
 
   const userMedia = await navigator.mediaDevices.getUserMedia({
-    video: {
-      deviceId: selectedVideoDevice.value?.deviceId,
-    },
-    audio: {
-      deviceId: selectedAudioDevice.value?.deviceId,
-    },
+    video: true,
+    audio: true,
   });
 
   // const displayMedia = await navigator.mediaDevices.getDisplayMedia({
