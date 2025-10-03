@@ -137,16 +137,6 @@ export class RoomClient {
           iceParameters: creds.result!.iceParameters,
           iceCandidates: creds.result!.iceCandidates,
           dtlsParameters: creds.result!.dtlsParameters,
-          iceServers: [
-            {
-              urls: "stun:stun.l.google.com:19302",
-            },
-            {
-              urls: "turn:37.187.26.197:5349?transport=tcp",
-              username: "turnkazuro",
-              credential: "turnkazuro",
-            },
-          ],
         });
 
         this.recvTransport.on(
