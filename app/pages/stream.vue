@@ -74,7 +74,8 @@ if (import.meta.client) {
     console.log("Connected to server");
 
     rooms = subscribeSocketToRooms(socket!);
-    if (currentRoomName.value) joinTheRoom();
+    if (currentRoomName.value)
+      socket!.once("rooms-updated", () => joinTheRoom());
     rerenderKey.value++;
   });
 }
