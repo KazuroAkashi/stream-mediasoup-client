@@ -129,9 +129,10 @@ const joinTheRoom = async () => {
   client = await joinRoom({ room: currentRoomName.value!, socket: socket! });
 
   const members = rooms.value![currentRoomName.value!]!.members;
+  console.log(members);
+  console.log(Object.entries(members));
 
   for (const [socketid, data] of Object.entries(members)) {
-    console.log("Socket |", socketid, "|", JSON.stringify(data));
     if (data.videoProducerIds.length > 0) {
       const videoConsumer = await client.createConsumer({
         producerId: data.videoProducerIds[0]!,
