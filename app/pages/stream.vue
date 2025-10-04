@@ -9,6 +9,17 @@
     </div>
 
     <button v-if="currentRoomName" @click="leaveTheRoom">Leave Room</button>
+    <div class="not-playing" v-if="currentRoomName && !isStreamer">
+      <p>If the stream doesn't play:</p>
+      <button
+        @click="
+          videoEl?.play();
+          audioEl?.play();
+        "
+      >
+        Play Stream
+      </button>
+    </div>
     <div class="stream">
       <video autoplay playsinline ref="videoEl"></video>
       <audio autoplay playsinline ref="audioEl"></audio>
@@ -144,7 +155,6 @@ const joinTheRoom = async () => {
       });
       stream.addTrack(videoConsumer.track);
       videoEl.value!.srcObject = stream;
-      videoEl.value!.play();
       1;
     }
     if (data.audioProducerIds.length > 0) {
@@ -160,7 +170,6 @@ const joinTheRoom = async () => {
       });
       stream.addTrack(audioConsumer.track);
       audioEl.value!.srcObject = stream;
-      audioEl.value!.play();
     }
   }
 };
