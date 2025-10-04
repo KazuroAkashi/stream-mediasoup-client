@@ -128,11 +128,10 @@ const joinTheRoom = async () => {
   console.log("Connecting to room:", currentRoomName.value);
   client = await joinRoom({ room: currentRoomName.value!, socket: socket! });
 
-  const members = rooms.value![currentRoomName.value!]!.members;
-  console.log(members);
-  console.log(Object.entries(members));
+  const members = toRaw(rooms.value![currentRoomName.value!]!.members);
 
   for (const [socketid, data] of Object.entries(members)) {
+    console.log(socketid);
     if (data.videoProducerIds.length > 0) {
       const videoConsumer = await client.createConsumer({
         producerId: data.videoProducerIds[0]!,
