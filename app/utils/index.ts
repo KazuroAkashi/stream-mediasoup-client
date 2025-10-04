@@ -215,5 +215,11 @@ export class RoomClient {
   async close() {
     await this.sendTransport?.close();
     await this.recvTransport?.close();
+    this.socket.emitWithAck("close-transport", {
+      transportId: this.sendTransport!.id,
+    });
+    this.socket.emitWithAck("close-transport", {
+      transportId: this.recvTransport!.id,
+    });
   }
 }

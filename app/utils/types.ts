@@ -87,6 +87,10 @@ export interface ClientToServerEvents {
     payload: { transportId: string },
     callback: (data: Result<null>) => void
   ) => void;
+  "close-transport": (
+    payload: { transportId: string },
+    callback: (data: Result<null>) => void
+  ) => void;
 }
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
