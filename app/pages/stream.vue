@@ -37,7 +37,7 @@ import {
 
 const rerenderKey = ref(0);
 
-const currentRoomName = ref(useRoute().params.room as string | undefined);
+const currentRoomName = ref(useRoute().query.room as string | undefined);
 const isStreamer = ref(false);
 
 const videoEl = useTemplateRef("videoEl");
