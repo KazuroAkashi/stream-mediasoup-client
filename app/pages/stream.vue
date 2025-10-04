@@ -145,9 +145,9 @@ const joinTheRoom = async () => {
       stream.addTrack(videoConsumer.track);
       videoEl.value!.srcObject = stream;
     }
-    if (data.videoProducerIds.length > 0) {
+    if (data.audioProducerIds.length > 0) {
       const audioConsumer = await client.createConsumer({
-        producerId: data.videoProducerIds[0]!,
+        producerId: data.audioProducerIds[0]!,
         producerKind: "audio",
       });
 
