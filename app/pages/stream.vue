@@ -124,6 +124,7 @@ const createStream = async () => {
 };
 
 const joinTheRoom = async () => {
+  console.log("Connecting to room:", currentRoomName.value);
   client = await joinRoom({ room: currentRoomName.value!, socket: socket! });
 
   const members = rooms.value![currentRoomName.value!]!.members;
