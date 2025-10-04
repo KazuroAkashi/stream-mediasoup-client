@@ -112,13 +112,17 @@ const joinARoom = async (roomName: string) => {
     audio: true,
   });
 
-  const videoProducer = await client.createProducer({
-    track: userMedia.getVideoTracks()[0]!,
-  });
+  if (userMedia.getVideoTracks().length > 0) {
+    const videoProducer = await client.createProducer({
+      track: userMedia.getVideoTracks()[0]!,
+    });
+  }
 
-  const audioProducer = await client.createProducer({
-    track: userMedia.getAudioTracks()[0]!,
-  });
+  if (userMedia.getAudioTracks().length > 0) {
+    const audioProducer = await client.createProducer({
+      track: userMedia.getAudioTracks()[0]!,
+    });
+  }
 };
 
 const leaveARoom = async (roomName: string) => {
