@@ -88,7 +88,7 @@ const createStream = async () => {
 
   isStreamer.value = true;
   currentRoomName.value = roomName.value;
-  window.location.href = `/stream?room=${roomName.value}`;
+  history.replaceState(null, "", `/stream?room=${roomName.value}`);
 
   client = await joinRoom({ room: roomName.value, socket: socket! });
 
