@@ -9,20 +9,90 @@
     </div>
 
     <button v-if="currentRoomName" @click="leaveTheRoom">Leave Room</button>
+    <div
+      v-if="isStreamer"
+      class="streamer-options"
+      style="display: flex; gap: 10px"
+    >
+      <button
+        v-if="userVideoProducer"
+        @click="
+          userVideoProducer?.paused
+            ? userVideoProducer.resume()
+            : userVideoProducer?.pause()
+        "
+      >
+        Turn Camera {{ userVideoProducer?.paused ? "On" : "Off" }}
+      </button>
+      <button
+        v-if="userAudioProducer"
+        @click="
+          userAudioProducer?.paused
+            ? userAudioProducer.resume()
+            : userAudioProducer?.pause()
+        "
+      >
+        Turn Microphone {{ userAudioProducer?.paused ? "On" : "Off" }}
+      </button>
+      <button
+        v-if="displayVideoProducer"
+        @click="
+          displayVideoProducer?.paused
+            ? displayVideoProducer.resume()
+            : displayVideoProducer?.pause()
+        "
+      >
+        Screen Video {{ displayVideoProducer?.paused ? "On" : "Off" }}
+      </button>
+      <button
+        v-if="displayAudioProducer"
+        @click="
+          displayAudioProducer?.paused
+            ? displayAudioProducer.resume()
+            : displayAudioProducer?.pause()
+        "
+      >
+        Screen Audio {{ displayAudioProducer?.paused ? "On" : "Off" }}
+      </button>
+    </div>
     <div class="not-playing" v-if="currentRoomName && !isStreamer">
       <p>If the stream doesn't play:</p>
       <button
         @click="
           videoEl?.play();
+          videoEl2?.play();
           audioEl?.play();
+          audioEl2?.play();
         "
       >
         Play Stream
       </button>
     </div>
-    <div class="stream">
+    <div
+      class="stream"
+      style="
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        justify-content: center;
+        align-items: center;
+        margin: 10px;
+        gap: 10px;
+      "
+    >
       <video autoplay playsinline ref="videoEl"></video>
-      <audio autoplay playsinline ref="audioEl"></audio>
+      <video autoplay playsinline ref="videoEl2"></video>
+      <audio
+        style="position: absolute; top: -200vh"
+        autoplay
+        playsinline
+        ref="audioEl"
+      ></audio>
+      <audio
+        style="position: absolute; top: -200vh"
+        autoplay
+        playsinline
+        ref="audioEl2"
+      ></audio>
     </div>
 
     <div class="viewers" v-if="currentRoomName">
@@ -39,6 +109,7 @@
 
 <script setup lang="ts">
 import { Socket, io } from "socket.io-client";
+import * as mediasoup from "mediasoup-client";
 import {
   createRoom,
   joinRoom,
@@ -52,7 +123,9 @@ const currentRoomName = ref(useRoute().query.room as string | undefined);
 const isStreamer = ref(false);
 
 const videoEl = useTemplateRef("videoEl");
+const videoEl2 = useTemplateRef("videoEl2");
 const audioEl = useTemplateRef("audioEl");
+const audioEl2 = useTemplateRef("audioEl2");
 
 const roomName = ref("");
 const roomError = ref("");
@@ -75,6 +148,11 @@ let rooms = ref(
 );
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+
+let userVideoProducer = ref(null as mediasoup.types.Producer | null);
+let userAudioProducer = ref(null as mediasoup.types.Producer | null);
+let displayVideoProducer = ref(null as mediasoup.types.Producer | null);
+let displayAudioProducer = ref(null as mediasoup.types.Producer | null);
 
 if (import.meta.client) {
   socket = io("/", {
@@ -109,13 +187,18 @@ const createStream = async () => {
     audio: true,
   });
 
+  const displayMedia = await navigator.mediaDevices.getDisplayMedia({
+    video: true,
+    audio: true,
+  });
+
   if (userMedia.getVideoTracks().length > 0) {
-    const videoProducer = await client.createProducer({
+    userVideoProducer.value = await client.createProducer({
       track: userMedia.getVideoTracks()[0]!,
     });
 
     const videoConsumer = await client.createConsumer({
-      producerId: videoProducer.id,
+      producerId: userVideoProducer.value.id,
       producerKind: "video",
     });
 
@@ -128,9 +211,34 @@ const createStream = async () => {
     videoEl.value!.srcObject = stream;
   }
 
+  if (displayMedia.getVideoTracks().length > 0) {
+    displayVideoProducer.value = await client.createProducer({
+      track: displayMedia.getVideoTracks()[0]!,
+    });
+
+    const videoConsumer = await client.createConsumer({
+      producerId: displayVideoProducer.value.id,
+      producerKind: "video",
+    });
+
+    const stream = new MediaStream();
+    videoConsumer.on("trackended", () => {
+      stream.removeTrack(videoConsumer.track);
+      console.log("Track ended");
+    });
+    stream.addTrack(videoConsumer.track);
+    videoEl2.value!.srcObject = stream;
+  }
+
   if (userMedia.getAudioTracks().length > 0) {
-    const audioProducer = await client.createProducer({
+    userAudioProducer.value = await client.createProducer({
       track: userMedia.getAudioTracks()[0]!,
+    });
+  }
+
+  if (displayMedia.getAudioTracks().length > 0) {
+    displayAudioProducer.value = await client.createProducer({
+      track: displayMedia.getAudioTracks()[0]!,
     });
   }
 };
@@ -155,7 +263,21 @@ const joinTheRoom = async () => {
       });
       stream.addTrack(videoConsumer.track);
       videoEl.value!.srcObject = stream;
-      1;
+      if (data.videoProducerIds.length > 1) {
+        const videoConsumer2 = await client.createConsumer({
+          producerId: data.videoProducerIds[1]!,
+          producerKind: "video",
+        });
+
+        const stream2 = new MediaStream();
+        videoConsumer2.on("trackended", () => {
+          stream2.removeTrack(videoConsumer2.track);
+          console.log("Track ended");
+        });
+        stream2.addTrack(videoConsumer2.track);
+        videoEl2.value!.srcObject = stream2;
+        1;
+      }
     }
     if (data.audioProducerIds.length > 0) {
       const audioConsumer = await client.createConsumer({
@@ -170,6 +292,21 @@ const joinTheRoom = async () => {
       });
       stream.addTrack(audioConsumer.track);
       audioEl.value!.srcObject = stream;
+
+      if (data.audioProducerIds.length > 1) {
+        const audioConsumer2 = await client.createConsumer({
+          producerId: data.audioProducerIds[1]!,
+          producerKind: "audio",
+        });
+
+        const stream2 = new MediaStream();
+        audioConsumer2.on("trackended", () => {
+          stream2.removeTrack(audioConsumer2.track);
+          console.log("Track ended");
+        });
+        stream2.addTrack(audioConsumer2.track);
+        audioEl2.value!.srcObject = stream2;
+      }
     }
   }
 };
