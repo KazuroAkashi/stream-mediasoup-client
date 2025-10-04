@@ -131,7 +131,6 @@ const joinTheRoom = async () => {
   const members = toRaw(rooms.value![currentRoomName.value!]!.members);
 
   for (const [socketid, data] of Object.entries(members)) {
-    console.log(socketid);
     if (data.videoProducerIds.length > 0) {
       const videoConsumer = await client.createConsumer({
         producerId: data.videoProducerIds[0]!,
@@ -145,6 +144,8 @@ const joinTheRoom = async () => {
       });
       stream.addTrack(videoConsumer.track);
       videoEl.value!.srcObject = stream;
+      videoEl.value!.play();
+      1;
     }
     if (data.audioProducerIds.length > 0) {
       const audioConsumer = await client.createConsumer({
@@ -159,6 +160,7 @@ const joinTheRoom = async () => {
       });
       stream.addTrack(audioConsumer.track);
       audioEl.value!.srcObject = stream;
+      audioEl.value!.play();
     }
   }
 };
