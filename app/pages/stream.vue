@@ -159,10 +159,10 @@ let displayVideoProducer = ref(null as mediasoup.types.Producer | null);
 let displayAudioProducer = ref(null as mediasoup.types.Producer | null);
 
 if (import.meta.client) {
-  // socket = io("/", {
-  //   path: "/api/ws/socket.io",
-  // });
-  socket = io("localhost:3001");
+  socket = io("/", {
+    path: "/api/ws/socket.io",
+  });
+  // socket = io("localhost:3001");
 
   socket.on("connect", async () => {
     console.log("Connected to server");
