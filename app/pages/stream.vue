@@ -220,18 +220,18 @@ const createStream = async () => {
       track: displayMedia.getVideoTracks()[0]!,
     });
 
-    const videoConsumer = await client.createConsumer({
-      producerId: displayVideoProducer.value.id,
-      producerKind: "video",
-    });
+    // const videoConsumer = await client.createConsumer({
+    //   producerId: displayVideoProducer.value.id,
+    //   producerKind: "video",
+    // });
 
-    const stream = new MediaStream();
-    videoConsumer.on("trackended", () => {
-      stream.removeTrack(videoConsumer.track);
-      console.log("Track ended");
-    });
-    stream.addTrack(videoConsumer.track);
-    videoEl2.value!.srcObject = stream;
+    // const stream = new MediaStream();
+    // videoConsumer.on("trackended", () => {
+    //   stream.removeTrack(videoConsumer.track);
+    //   console.log("Track ended");
+    // });
+    // stream.addTrack(videoConsumer.track);
+    // videoEl2.value!.srcObject = stream;
   }
 
   if (userMedia.getAudioTracks().length > 0) {
