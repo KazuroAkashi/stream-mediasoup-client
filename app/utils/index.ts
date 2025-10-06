@@ -214,6 +214,24 @@ export class RoomClient {
     });
   }
 
+  async startRecording(payload: {
+    videoProducerId: string;
+    audioProducerId: string;
+  }) {
+    await this.socket.emitWithAck("start-recording", {
+      recordingId: this.room,
+      transportId: this.sendTransport!.id,
+      videoProducerId: payload.videoProducerId,
+      audioProducerId: payload.audioProducerId,
+    });
+  }
+
+  async stopRecording() {
+    await this.socket.emitWithAck("stop-recording", {
+      recordingId: this.room,
+    });
+  }
+
   async close() {
     await this.sendTransport?.close();
     await this.recvTransport?.close();

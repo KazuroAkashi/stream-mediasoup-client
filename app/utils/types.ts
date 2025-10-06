@@ -87,6 +87,19 @@ export interface ClientToServerEvents {
     payload: { transportId: string; consumerId: string },
     callback: (data: Result<null>) => void
   ) => void;
+  "start-recording": (
+    payload: {
+      recordingId: string;
+      transportId: string;
+      videoProducerId: string;
+      audioProducerId: string;
+    },
+    callback: (data: Result<null>) => void
+  ) => void;
+  "stop-recording": (
+    payload: { recordingId: string },
+    callback: (data: Result<null>) => void
+  ) => void;
   "close-transport": (
     payload: { transportId: string },
     callback: (data: Result<null>) => void

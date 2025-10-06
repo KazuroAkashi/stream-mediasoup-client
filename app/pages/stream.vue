@@ -14,6 +14,9 @@
       class="streamer-options"
       style="display: flex; gap: 10px"
     >
+      <button @click="startRecording">
+        {{ isRecording ? "Stop" : "Start" }} Recording
+      </button>
       <button
         v-if="userVideoProducer"
         @click="
@@ -120,6 +123,8 @@ const rerenderKey = ref(0);
 
 const currentRoomName = ref(useRoute().query.room as string | undefined);
 const isStreamer = ref(false);
+
+const isRecording = ref(false);
 
 const videoEl = useTemplateRef("videoEl");
 const videoEl2 = useTemplateRef("videoEl2");
@@ -313,5 +318,22 @@ const joinTheRoom = async () => {
 const leaveTheRoom = async () => {
   await client?.close();
   useRouter().push("/stream");
+};
+
+const startRecording = async () => {
+  if (isRecording.value) {
+    await client?.stopRecording();
+    isRecording.value = false;
+  } else {
+    if (!displayVideoProducer.value || !userAudioProducer.value) {
+      alert("You need to start streaming first");
+      return;
+    }
+    await client?.startRecording({
+      videoProducerId: displayVideoProducer.value!.id,
+      audioProducerId: userAudioProducer.value!.id,
+    });
+    isRecording.value = true;
+  }
 };
 </script>
