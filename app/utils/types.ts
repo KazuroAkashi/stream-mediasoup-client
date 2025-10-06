@@ -84,7 +84,7 @@ export interface ClientToServerEvents {
     ) => void
   ) => void;
   "resume-consume": (
-    payload: { transportId: string },
+    payload: { transportId: string; consumerId: string },
     callback: (data: Result<null>) => void
   ) => void;
   "close-transport": (

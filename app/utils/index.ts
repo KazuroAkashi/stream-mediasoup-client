@@ -165,6 +165,7 @@ export class RoomClient {
             if (connectionState === "connected") {
               const res = await this.socket.emitWithAck("resume-consume", {
                 transportId: this.recvTransport!.id,
+                consumerId: consumer!.id,
               });
 
               if (res.error) {
@@ -201,6 +202,7 @@ export class RoomClient {
       if (this.recvTransport.connectionState === "connected") {
         const res = await this.socket.emitWithAck("resume-consume", {
           transportId: this.recvTransport!.id,
+          consumerId: consumer!.id,
         });
 
         if (res.error) {
