@@ -72,15 +72,14 @@
       class="stream"
       style="
         display: grid;
-        grid-template-columns: 1fr 1fr;
         justify-content: center;
         align-items: center;
         margin: 10px;
         gap: 10px;
       "
     >
-      <video autoplay playsinline ref="videoEl"></video>
-      <video autoplay playsinline ref="videoEl2"></video>
+      <video autoplay playsinline ref="videoEl" style="width: 400px"></video>
+      <video autoplay playsinline ref="videoEl2" style="width: 100%"></video>
       <audio
         style="position: absolute; top: -200vh"
         autoplay
@@ -313,5 +312,6 @@ const joinTheRoom = async () => {
 
 const leaveTheRoom = async () => {
   await client?.close();
+  useRouter().push("/stream");
 };
 </script>
