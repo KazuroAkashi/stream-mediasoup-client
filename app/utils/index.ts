@@ -1,27 +1,42 @@
 import type { TypedSocket } from "./types";
 import * as mediasoup from "mediasoup-client";
 
-let rooms = ref(
-  {} as {
-    [key: string]: {
-      rtpCapabilities: mediasoup.types.RtpCapabilities;
-      members: {
-        [key: string]: {
-          audioProducerIds: string[];
-          videoProducerIds: string[];
-          consumerIds: string[];
-        };
+let _rooms = {} as {
+  [key: string]: {
+    rtpCapabilities: mediasoup.types.RtpCapabilities;
+    members: {
+      [key: string]: {
+        audioProducerIds: string[];
+        videoProducerIds: string[];
+        consumerIds: string[];
       };
     };
-  }
-);
+  };
+};
 
-export function subscribeSocketToRooms(socket: TypedSocket) {
+const roomsUpdateListeners = [] as ((rooms: typeof _rooms) => void)[];
+
+export function subscribeSocketToRooms(
+  socket: TypedSocket,
+  onUpdate?: (rooms: typeof _rooms) => void,
+  onFirstUpdate?: (rooms: typeof _rooms) => void
+) {
+  let fired = false;
   socket.on("rooms-updated", (data) => {
     console.log("Rooms updated", data.result!);
-    rooms.value = data.result!;
+    _rooms = data.result!;
+    onUpdate?.(_rooms);
+
+    for (const listener of roomsUpdateListeners) {
+      listener(_rooms);
+    }
+
+    if (!fired) {
+      fired = true;
+      onFirstUpdate?.(_rooms);
+    }
   });
-  return rooms;
+  return _rooms;
 }
 
 export async function createRoom(payload: {
@@ -38,11 +53,11 @@ export async function createRoom(payload: {
 }
 
 export async function joinRoom(payload: { room: string; socket: TypedSocket }) {
-  if (!rooms.value[payload.room]) {
+  if (!_rooms[payload.room]) {
     throw new Error("Room does not exist");
   }
 
-  const room = rooms.value[payload.room]!;
+  const room = _rooms[payload.room]!;
 
   const device = await mediasoup.Device.factory();
   await device.load({
@@ -65,6 +80,10 @@ export class RoomClient {
 
   private sendTransport: mediasoup.types.Transport | null = null;
   private recvTransport: mediasoup.types.Transport | null = null;
+
+  get roomName() {
+    return this.room;
+  }
 
   async createProducer(payload: { track: MediaStreamTrack }) {
     if (this.sendTransport === null) {
@@ -214,21 +233,67 @@ export class RoomClient {
     });
   }
 
+  async createConsumerStream(payload: {
+    producerId: string;
+    producerKind: "audio" | "video";
+  }) {
+    const consumer = await this.createConsumer(payload);
+    const stream = new MediaStream();
+    stream.addTrack(consumer.track);
+
+    roomsUpdateListeners.push((rooms) => {
+      if (
+        payload.producerKind === "audio" &&
+        !rooms[this.room]?.members[this.socket.id!]?.audioProducerIds.includes(
+          payload.producerId
+        )
+      ) {
+        stream.removeTrack(consumer.track);
+        consumer.close();
+        this.socket.emit(
+          "close-consumer",
+          {
+            consumerId: consumer.id,
+          },
+          () => {}
+        );
+      } else if (
+        payload.producerKind === "video" &&
+        !rooms[this.room]?.members[this.socket.id!]?.videoProducerIds.includes(
+          payload.producerId
+        )
+      ) {
+        stream.removeTrack(consumer.track);
+        consumer.close();
+        this.socket.emit(
+          "close-consumer",
+          {
+            consumerId: consumer.id,
+          },
+          () => {}
+        );
+      }
+    });
+
+    return stream;
+  }
+
   async startRecording(payload: {
+    recordingId: string;
     videoProducerId: string;
     audioProducerId: string;
   }) {
     await this.socket.emitWithAck("start-recording", {
-      recordingId: this.room,
+      recordingId: payload.recordingId,
       transportId: this.sendTransport!.id,
       videoProducerId: payload.videoProducerId,
       audioProducerId: payload.audioProducerId,
     });
   }
 
-  async stopRecording() {
+  async stopRecording(payload: { recordingId: string }) {
     await this.socket.emitWithAck("stop-recording", {
-      recordingId: this.room,
+      recordingId: payload.recordingId,
     });
   }
 
