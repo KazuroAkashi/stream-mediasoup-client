@@ -298,7 +298,7 @@ export class RoomClient {
         if (res.error) {
           throw new Error(res.error.type);
         }
-        roomsUpdateListeners.push((rooms) => {
+        const cb = (rooms: typeof _rooms) => {
           if (
             payload.producerKind === "audio" &&
             !Object.values(rooms[this.room]!.members).some((member) =>
@@ -306,7 +306,6 @@ export class RoomClient {
             )
           ) {
             consumer.close();
-            onEnd?.();
             this.socket.emit(
               "close-consumer",
               {
@@ -315,6 +314,9 @@ export class RoomClient {
               },
               () => {}
             );
+            const index = roomsUpdateListeners.indexOf(cb);
+            roomsUpdateListeners.splice(index, 1);
+            onEnd?.();
           } else if (
             payload.producerKind === "video" &&
             !Object.values(rooms[this.room]!.members).some((member) =>
@@ -322,7 +324,6 @@ export class RoomClient {
             )
           ) {
             consumer.close();
-            onEnd?.();
             this.socket.emit(
               "close-consumer",
               {
@@ -331,8 +332,12 @@ export class RoomClient {
               },
               () => {}
             );
+            const index = roomsUpdateListeners.indexOf(cb);
+            roomsUpdateListeners.splice(index, 1);
+            onEnd?.();
           }
-        });
+        };
+        roomsUpdateListeners.push(cb);
 
         resolve(consumer);
       }
