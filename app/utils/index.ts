@@ -301,6 +301,7 @@ export class RoomClient {
           throw new Error(res.error.type);
         }
         consumerRoomsUpdateListeners[consumer.id] = (rooms: typeof _rooms) => {
+          console.log(Object.values(rooms[this.room]!.members));
           if (
             payload.producerKind === "audio" &&
             !Object.values(rooms[this.room]!.members).some((member) =>
@@ -324,6 +325,7 @@ export class RoomClient {
               member.videoProducerIds.includes(payload.producerId)
             )
           ) {
+            console.log("Video producer closed");
             consumer.close();
             this.socket.emit(
               "close-consumer",
@@ -334,6 +336,7 @@ export class RoomClient {
               () => {}
             );
             delete consumerRoomsUpdateListeners[consumer.id];
+            console.log("deleted callback");
             onEnd?.();
           }
         };
