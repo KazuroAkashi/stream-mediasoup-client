@@ -132,71 +132,60 @@ export class RoomClient {
    * @returns A mediasoup `Producer` object which can be used to pause and resume sending (No other functionality of Producer should be used manually)
    */
   async createProducer(payload: { track: MediaStreamTrack }) {
-    return new Promise<mediasoup.types.Producer>(async (resolve) => {
-      let producer: mediasoup.types.Producer;
-      let waitForConnect = false;
-      if (this.sendTransport === null) {
-        waitForConnect = true;
-        const creds = await this.socket.emitWithAck("join-room", {
-          room: this.room,
-        });
-
-        if (creds.error) {
-          throw new Error(creds.error.type);
-        }
-
-        console.log(creds.result);
-
-        this.sendTransport = this.device.createSendTransport({
-          id: creds.result!.id,
-          iceParameters: creds.result!.iceParameters,
-          iceCandidates: creds.result!.iceCandidates,
-          dtlsParameters: creds.result!.dtlsParameters,
-        });
-
-        this.sendTransport.on(
-          "connect",
-          async ({ dtlsParameters }, callback) => {
-            const res = await this.socket.emitWithAck("connect-transport", {
-              transportId: this.sendTransport!.id,
-              dtlsParameters,
-            });
-
-            if (res.error) {
-              throw new Error(res.error.type);
-            }
-
-            callback();
-            resolve(producer);
-          }
-        );
-
-        this.sendTransport.on(
-          "produce",
-          async ({ kind, rtpParameters }, callback) => {
-            const res = await this.socket.emitWithAck("transport-produce", {
-              transportId: this.sendTransport!.id,
-              kind,
-              rtpParameters,
-            });
-
-            if (res.error) {
-              throw new Error(res.error.type);
-            }
-
-            callback({ id: res.result!.id });
-          }
-        );
-      }
-
-      producer = await this.sendTransport.produce({
-        track: payload.track,
+    if (this.sendTransport === null) {
+      const creds = await this.socket.emitWithAck("join-room", {
+        room: this.room,
       });
 
-      if (!waitForConnect) {
-        resolve(producer);
+      if (creds.error) {
+        throw new Error(creds.error.type);
       }
+
+      console.log(creds.result);
+
+      this.sendTransport = this.device.createSendTransport({
+        id: creds.result!.id,
+        iceParameters: creds.result!.iceParameters,
+        iceCandidates: creds.result!.iceCandidates,
+        dtlsParameters: creds.result!.dtlsParameters,
+      });
+
+      this.sendTransport.on("connect", async ({ dtlsParameters }, callback) => {
+        const res = await this.socket.emitWithAck("connect-transport", {
+          transportId: this.sendTransport!.id,
+          dtlsParameters,
+        });
+
+        if (res.error) {
+          throw new Error(res.error.type);
+        }
+
+        callback();
+      });
+
+      this.sendTransport.on(
+        "produce",
+        async ({ kind, rtpParameters }, callback) => {
+          const res = await this.socket.emitWithAck("transport-produce", {
+            transportId: this.sendTransport!.id,
+            kind,
+            rtpParameters,
+          });
+
+          if (res.error) {
+            throw new Error(res.error.type);
+          }
+
+          callback({ id: res.result!.id });
+        }
+      );
+    }
+
+    const producer = await this.sendTransport.produce({
+      track: payload.track,
     });
+
+    return producer;
   }
 
   /**
