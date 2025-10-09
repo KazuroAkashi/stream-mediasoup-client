@@ -14,7 +14,9 @@ let _rooms = {} as {
   };
 };
 
-const roomsUpdateListeners = [] as ((rooms: typeof _rooms) => void)[];
+const consumerRoomsUpdateListeners = {} as {
+  [consumerId: string]: (rooms: typeof _rooms) => void;
+};
 
 /**
  * Subscribes to the room updates. Calls `onUpdate` with the new rooms object when the rooms are updated.
@@ -39,7 +41,7 @@ export function subscribeSocketToRooms(
     _rooms = data.result!;
     onUpdate?.(_rooms);
 
-    for (const listener of roomsUpdateListeners) {
+    for (const listener of Object.values(consumerRoomsUpdateListeners)) {
       listener(_rooms);
     }
 
@@ -298,7 +300,7 @@ export class RoomClient {
         if (res.error) {
           throw new Error(res.error.type);
         }
-        const cb = (rooms: typeof _rooms) => {
+        consumerRoomsUpdateListeners[consumer.id] = (rooms: typeof _rooms) => {
           if (
             payload.producerKind === "audio" &&
             !Object.values(rooms[this.room]!.members).some((member) =>
@@ -314,8 +316,7 @@ export class RoomClient {
               },
               () => {}
             );
-            const index = roomsUpdateListeners.indexOf(cb);
-            roomsUpdateListeners.splice(index, 1);
+            delete consumerRoomsUpdateListeners[consumer.id];
             onEnd?.();
           } else if (
             payload.producerKind === "video" &&
@@ -332,12 +333,10 @@ export class RoomClient {
               },
               () => {}
             );
-            const index = roomsUpdateListeners.indexOf(cb);
-            roomsUpdateListeners.splice(index, 1);
+            delete consumerRoomsUpdateListeners[consumer.id];
             onEnd?.();
           }
         };
-        roomsUpdateListeners.push(cb);
 
         resolve(consumer);
       }
