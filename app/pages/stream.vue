@@ -205,6 +205,7 @@ const createStream = async () => {
     userVideoProducer.value = await client.createProducer({
       track: userMedia.getVideoTracks()[0]!,
     });
+    console.log(userVideoProducer.value);
 
     await client.createConsumerStreamElement({
       producerId: userVideoProducer.value.id,
