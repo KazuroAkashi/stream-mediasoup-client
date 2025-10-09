@@ -290,7 +290,6 @@ export class RoomClient {
                     member.videoProducerIds.includes(payload.producerId)
                   )
                 ) {
-                  console.log("Video producer closed");
                   consumer.close();
                   this.socket.emit(
                     "close-consumer",
@@ -301,11 +300,10 @@ export class RoomClient {
                     () => {}
                   );
                   delete consumerRoomsUpdateListeners[consumer.id];
-                  console.log("deleted callback");
                   onEnd?.();
                 }
-                resolve(consumer);
               };
+              resolve(consumer);
             }
           }
         );
@@ -364,7 +362,6 @@ export class RoomClient {
               member.videoProducerIds.includes(payload.producerId)
             )
           ) {
-            console.log("Video producer closed");
             consumer.close();
             this.socket.emit(
               "close-consumer",
@@ -375,7 +372,6 @@ export class RoomClient {
               () => {}
             );
             delete consumerRoomsUpdateListeners[consumer.id];
-            console.log("deleted callback");
             onEnd?.();
           }
         };
