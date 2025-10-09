@@ -105,11 +105,7 @@ export interface ClientToServerEvents {
     callback: (data: Result<null>) => void
   ) => void;
   "close-consumer": (
-    payload: { consumerId: string },
-    callback: (data: Result<null>) => void
-  ) => void;
-  "close-producer": (
-    payload: { producerId: string },
+    payload: { transportId: string; consumerId: string },
     callback: (data: Result<null>) => void
   ) => void;
 }

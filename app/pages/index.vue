@@ -89,20 +89,20 @@ if (import.meta.client) {
   socket.on("connect", async () => {
     console.log("Connected to server");
 
-    rooms = subscribeSocketToRooms(socket!);
+    subscribeSocketToRooms(socket!, (_rooms) => (rooms.value = _rooms));
   });
 }
 
 const createNewRoom = async () => {
   try {
-    await createRoom({ name: roomName.value, socket: socket! });
+    await createRoom({ roomName: roomName.value, socket: socket! });
   } catch (error) {
     roomError.value = error as string;
   }
 };
 
 const joinARoom = async (roomName: string) => {
-  const client = await joinRoom({ room: roomName, socket: socket! });
+  const client = await joinRoom({ roomName: roomName, socket: socket! });
 
   clients[roomName] = client;
   connectedRoomNames.value.push(roomName);
@@ -193,7 +193,7 @@ const consumeProducer = async (
 };
 
 const initiateConnection = async () => {
-  const client = await joinRoom({ room: "room-1", socket: socket! });
+  const client = await joinRoom({ roomName: "room-1", socket: socket! });
 
   const userMedia = await navigator.mediaDevices.getUserMedia({
     video: true,

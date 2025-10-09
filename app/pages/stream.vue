@@ -179,7 +179,7 @@ if (import.meta.client) {
 
 const createStream = async () => {
   try {
-    await createRoom({ name: roomName.value, socket: socket! });
+    await createRoom({ roomName: roomName.value, socket: socket! });
   } catch (error) {
     roomError.value = error as string;
     return;
@@ -189,7 +189,7 @@ const createStream = async () => {
   currentRoomName.value = roomName.value;
   history.replaceState(null, "", `/stream?room=${roomName.value}`);
 
-  client = await joinRoom({ room: roomName.value, socket: socket! });
+  client = await joinRoom({ roomName: roomName.value, socket: socket! });
 
   const userMedia = await navigator.mediaDevices.getUserMedia({
     video: true,
@@ -206,11 +206,11 @@ const createStream = async () => {
       track: userMedia.getVideoTracks()[0]!,
     });
 
-    const stream = await client.createConsumerStream({
+    await client.createConsumerStreamElement({
       producerId: userVideoProducer.value.id,
       producerKind: "video",
+      element: videoEl.value!,
     });
-    videoEl.value!.srcObject = stream;
   }
 
   if (displayMedia.getVideoTracks().length > 0) {
@@ -218,12 +218,11 @@ const createStream = async () => {
       track: displayMedia.getVideoTracks()[0]!,
     });
 
-    const stream = await client.createConsumerStream({
+    await client.createConsumerStreamElement({
       producerId: displayVideoProducer.value.id,
       producerKind: "video",
+      element: videoEl2.value!,
     });
-
-    videoEl2.value!.srcObject = stream;
   }
 
   if (userMedia.getAudioTracks().length > 0) {
@@ -241,44 +240,42 @@ const createStream = async () => {
 
 const joinTheRoom = async () => {
   console.log("Connecting to room:", currentRoomName.value);
-  client = await joinRoom({ room: currentRoomName.value!, socket: socket! });
+  client = await joinRoom({
+    roomName: currentRoomName.value!,
+    socket: socket!,
+  });
 
   const members = toRaw(rooms.value![currentRoomName.value!]!.members);
 
   for (const [socketid, data] of Object.entries(members)) {
     if (data.videoProducerIds.length > 0) {
-      const stream = await client.createConsumerStream({
+      await client.createConsumerStreamElement({
         producerId: data.videoProducerIds[0]!,
         producerKind: "video",
+        element: videoEl.value!,
       });
 
-      videoEl.value!.srcObject = stream;
-
       if (data.videoProducerIds.length > 1) {
-        const stream2 = await client.createConsumerStream({
+        await client.createConsumerStreamElement({
           producerId: data.videoProducerIds[1]!,
           producerKind: "video",
+          element: videoEl2.value!,
         });
-
-        videoEl2.value!.srcObject = stream2;
-        1;
       }
     }
     if (data.audioProducerIds.length > 0) {
-      const stream = await client.createConsumerStream({
+      await client.createConsumerStreamElement({
         producerId: data.audioProducerIds[0]!,
         producerKind: "audio",
+        element: audioEl.value!,
       });
 
-      audioEl.value!.srcObject = stream;
-
       if (data.audioProducerIds.length > 1) {
-        const stream2 = await client.createConsumerStream({
+        await client.createConsumerStreamElement({
           producerId: data.audioProducerIds[1]!,
           producerKind: "audio",
+          element: audioEl2.value!,
         });
-
-        audioEl2.value!.srcObject = stream2;
       }
     }
   }
