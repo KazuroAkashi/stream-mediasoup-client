@@ -302,6 +302,7 @@ export class RoomClient {
         }
         consumerRoomsUpdateListeners[consumer.id] = (rooms: typeof _rooms) => {
           console.log(consumer.id, Object.values(rooms[this.room]!.members));
+          console.log(payload.producerKind, payload.producerId);
           if (
             payload.producerKind === "audio" &&
             !Object.values(rooms[this.room]!.members).some((member) =>
