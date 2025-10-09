@@ -134,8 +134,9 @@ export class RoomClient {
   async createProducer(payload: { track: MediaStreamTrack }) {
     return new Promise<mediasoup.types.Producer>(async (resolve) => {
       let producer: mediasoup.types.Producer;
-
+      let waitForConnect = false;
       if (this.sendTransport === null) {
+        waitForConnect = true;
         const creds = await this.socket.emitWithAck("join-room", {
           room: this.room,
         });
@@ -191,6 +192,10 @@ export class RoomClient {
       producer = await this.sendTransport.produce({
         track: payload.track,
       });
+
+      if (!waitForConnect) {
+        resolve(producer);
+      }
     });
   }
 
