@@ -264,8 +264,48 @@ export class RoomClient {
                 throw new Error(res.error.type);
               }
 
-              console.log(connectionState);
-              resolve(consumer);
+              consumerRoomsUpdateListeners[consumer.id] = (
+                rooms: typeof _rooms
+              ) => {
+                if (
+                  payload.producerKind === "audio" &&
+                  !Object.values(rooms[this.room]!.members).some((member) =>
+                    member.audioProducerIds.includes(payload.producerId)
+                  )
+                ) {
+                  consumer.close();
+                  this.socket.emit(
+                    "close-consumer",
+                    {
+                      transportId: this.recvTransport!.id,
+                      consumerId: consumer.id,
+                    },
+                    () => {}
+                  );
+                  delete consumerRoomsUpdateListeners[consumer.id];
+                  onEnd?.();
+                } else if (
+                  payload.producerKind === "video" &&
+                  !Object.values(rooms[this.room]!.members).some((member) =>
+                    member.videoProducerIds.includes(payload.producerId)
+                  )
+                ) {
+                  console.log("Video producer closed");
+                  consumer.close();
+                  this.socket.emit(
+                    "close-consumer",
+                    {
+                      transportId: this.recvTransport!.id,
+                      consumerId: consumer.id,
+                    },
+                    () => {}
+                  );
+                  delete consumerRoomsUpdateListeners[consumer.id];
+                  console.log("deleted callback");
+                  onEnd?.();
+                }
+                resolve(consumer);
+              };
             }
           }
         );
@@ -301,8 +341,6 @@ export class RoomClient {
           throw new Error(res.error.type);
         }
         consumerRoomsUpdateListeners[consumer.id] = (rooms: typeof _rooms) => {
-          console.log(consumer.id, Object.values(rooms[this.room]!.members));
-          console.log(payload.producerKind, payload.producerId);
           if (
             payload.producerKind === "audio" &&
             !Object.values(rooms[this.room]!.members).some((member) =>
