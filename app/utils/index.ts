@@ -301,7 +301,7 @@ export class RoomClient {
         roomsUpdateListeners.push((rooms) => {
           if (
             payload.producerKind === "audio" &&
-            Object.values(rooms[this.room]!.members).some((member) =>
+            !Object.values(rooms[this.room]!.members).some((member) =>
               member.audioProducerIds.includes(payload.producerId)
             )
           ) {
@@ -317,7 +317,7 @@ export class RoomClient {
             );
           } else if (
             payload.producerKind === "video" &&
-            Object.values(rooms[this.room]!.members).some((member) =>
+            !Object.values(rooms[this.room]!.members).some((member) =>
               member.videoProducerIds.includes(payload.producerId)
             )
           ) {
